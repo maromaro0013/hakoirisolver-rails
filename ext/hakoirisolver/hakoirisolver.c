@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <ruby.h>
 
+VALUE hello(void);
+
 init_HakoiriSolver(){
   VALUE csolver;
   csolver = rb_define_class("HakoiriSolver", rb_cObject);
