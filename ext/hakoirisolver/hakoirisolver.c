@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <ruby.h>
+#include "hakoirisolver.h"
 
 VALUE hello(void);
 
@@ -11,5 +11,5 @@ Init_hakoirisolver(){
 
 VALUE hello(void) {
   printf("Hello\n");
-  return Qnil;
+  return FIX2INT(cFIELD_SIZE_LIMIT);
 }
