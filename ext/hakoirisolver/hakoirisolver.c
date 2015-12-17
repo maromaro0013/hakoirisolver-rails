@@ -3,7 +3,7 @@
 
 VALUE hello(void);
 
-Init_HakoiriSolver(){
+Init_hakoirisolver(){
   VALUE csolver;
   csolver = rb_define_class("HakoiriSolver", rb_cObject);
   rb_define_method(csolver, "hello", hello, 0);
