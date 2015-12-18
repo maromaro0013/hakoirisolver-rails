@@ -27,6 +27,9 @@ end
 
 solver.init_solver
 ret = solver.data_validate
-puts ret.to_s
-solver.solve_field
+#puts solver.to_s
+
+puts solver.pop_message.to_s
+
+#solver.solve_field
 solver.delete_solver

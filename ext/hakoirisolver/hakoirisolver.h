@@ -34,6 +34,11 @@ enum {
   eSOLVESTATE_MAX
 };
 
+typedef struct MESSAGE_STACK_t {
+  int message_count;
+  char messages[256][256];
+}MESSAGE_STACK;
+
 typedef struct PANEL_t {
   char width;
   char height;

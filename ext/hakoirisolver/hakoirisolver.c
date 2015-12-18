@@ -5,6 +5,7 @@ static char         panel_limit_dp[cPANEL_SIZE_PATTERNS][cPANELS_MAX][eDIR_MAX];
 static FIELD_INFO   g_field_info;
 static FIELD        g_field;
 static char*        g_field_hashs[cFIELD_HASH_MAX];
+MESSAGE_STACK       g_message_stack;
 
 VALUE set_field_info(VALUE self, VALUE w, VALUE h, VALUE end_x, VALUE end_y);
 VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE type);
@@ -14,7 +15,11 @@ VALUE init_solver(VALUE self);
 VALUE solve_field(VALUE self);
 VALUE delete_solver(VALUE self);
 
+VALUE pop_message(VALUE self);
+
 void Init_hakoirisolver() {
+  g_message_stack.message_count = 0;
+
   VALUE csolver;
   csolver = rb_define_class("HakoiriSolver", rb_cObject);
   rb_define_method(csolver, "set_field_info", set_field_info, 4);
@@ -24,6 +29,8 @@ void Init_hakoirisolver() {
   rb_define_method(csolver, "init_solver", init_solver, 0);
   rb_define_method(csolver, "solve_field", solve_field, 0);
   rb_define_method(csolver, "delete_solver", delete_solver, 0);
+
+  rb_define_method(csolver, "pop_message", pop_message, 0);
 }
 
 VALUE set_field_info(VALUE self, VALUE w, VALUE h, VALUE end_x, VALUE end_y) {
@@ -39,10 +46,6 @@ VALUE set_field_info(VALUE self, VALUE w, VALUE h, VALUE end_x, VALUE end_y) {
   info->field_hash_count = 0;
 
   return 0;
-}
-
-void add_field_panel_count(FIELD_INFO* info) {
-  info->panel_count++;
 }
 
 void init_field_hash(void) {
@@ -91,6 +94,27 @@ void delete_field_hashs(FIELD_INFO* info) {
 }
 // ---------------------------
 
+void push_message(char* message) {
+  int count = g_message_stack.message_count;
+
+  strcpy(g_message_stack.messages[count], message);
+  g_message_stack.message_count++;
+}
+
+VALUE pop_message(VALUE self) {
+  int count = g_message_stack.message_count;
+
+  printf("pop_message%d\n", count);
+
+  if (count <= 0) {
+    return rb_str_new(0, 0);
+  }
+
+  g_message_stack.message_count--;
+  count = g_message_stack.message_count;
+  return rb_str_new(g_message_stack.messages[count], strlen(g_message_stack.messages[count]));
+}
+
 void copy_field(FIELD* source, FIELD* dest) {
   memcpy((void*)&dest->panels[0], &source->panels[0], sizeof(dest->panels));
 }
@@ -107,6 +131,8 @@ VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE t
   FIELD_INFO* info = &g_field_info;
   PANEL* p = &g_field.panels[info->panel_count];
   memset(p, 0, sizeof(PANEL));
+
+  push_message("add panel");
 
   p->width = FIX2INT(w);
   p->height = FIX2INT(h);
