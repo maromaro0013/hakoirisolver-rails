@@ -104,8 +104,6 @@ void push_message(char* message) {
 VALUE pop_message(VALUE self) {
   int count = g_message_stack.message_count;
 
-  printf("pop_message%d\n", count);
-
   if (count <= 0) {
     return rb_str_new(0, 0);
   }
@@ -132,7 +130,7 @@ VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE t
   PANEL* p = &g_field.panels[info->panel_count];
   memset(p, 0, sizeof(PANEL));
 
-  push_message("add panel");
+  //push_message("add panel");
 
   p->width = FIX2INT(w);
   p->height = FIX2INT(h);
@@ -140,7 +138,6 @@ VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE t
   p->y = FIX2INT(y);
   p->type = FIX2INT(type);
 
-//printf("mokyun:%d\n", NUM2INT(w));
   if (p->type == cPANELTYPE_TARGET) {
     info->target_idx = info->panel_count;
   }
@@ -160,35 +157,6 @@ int panel_collision(PANEL* p0, PANEL* p1) {
   }
 
   return FALSE;
-/*
-  int x0 = p0->x;
-  int x1 = p0->x + p0->width;
-  int x2 = p1->x;
-  int x3 = p1->x + p1->width;
-
-  int y0 = p0->y;
-  int y1 = p0->y + p0->height;
-  int y2 = p1->y;
-  int y3 = p1->y + p1->height;
-
-  if (x0 >= x2 && x0 < x3) {
-    if (y0 >= y2 && y0 < y3) {
-      return TRUE;
-    }
-    if (y1 > y2 && y1 <= y3) {
-      return TRUE;
-    }
-  }
-  if (x1 > x2 && x1 <= x3) {
-    if (y1 > y2 && y1 <= y3) {
-      return TRUE;
-    }
-    if (y0 >= y2 && y0 < y3) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-*/
 }
 
 // 移動判定のメモ化配列の初期化
@@ -398,6 +366,7 @@ int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
   FIELD_INFO* info = &g_field_info;
   int i = 0;
   int j = 0;
+  char message[256];
 
   if (leaf->depth < depth) {
     int ret = eSOLVESTATE_FAILED;
@@ -419,21 +388,27 @@ int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
         break;
 
         case eSOLVESTATE_SUCCEED:
-          printf("panel_idx:%d - ", leaf->panel_idx);
+          //push_message("add panel");
+          //printf("panel_idx:%d - ", leaf->panel_idx);
           switch (leaf->dir) {
             case eDIR_UP:
-              printf("UP\n");
+              sprintf(message, "%d,UP", leaf->panel_idx);
+              //printf("UP\n");
             break;
             case eDIR_DOWN:
-              printf("DOWN\n");
+              sprintf(message, "%d,DOWN", leaf->panel_idx);
+              //printf("DOWN\n");
             break;
             case eDIR_LEFT:
-              printf("LEFT\n");
+              sprintf(message, "%d,LEFT", leaf->panel_idx);
+              //printf("LEFT\n");
             break;
             case eDIR_RIGHT:
-              printf("RIGHT\n");
+              sprintf(message, "%d,RIGHT", leaf->panel_idx);
+              //printf("RIGHT\n");
             break;
           }
+          push_message(message);
           return eSOLVESTATE_SUCCEED;
       }
     }
@@ -499,6 +474,7 @@ VALUE solve_field(VALUE self) {
 
   for (i = 0; i < max_depth; i++) {
     ret = grow_solve_tree(root, root, i);
+    /*
     switch (ret) {
       case eSOLVESTATE_CONTINUE:
         printf("solve_field:CONTINUE - depth:%d\n", i);
@@ -512,6 +488,7 @@ VALUE solve_field(VALUE self) {
         printf("solve_field:SUCCEED - depth:%d\n", i);
       break;
     }
+    */
     if (ret == eSOLVESTATE_FAILED || ret == eSOLVESTATE_SUCCEED) {
       break;
     }
