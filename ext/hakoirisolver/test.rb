@@ -3,8 +3,9 @@ require "./hakoirisolver.o"
 
 stage0 = JSON.parse '{"framesize":{"w":4,"h":5},"endpoint":{"x":3,"y":5},"panels":[{"x":0,"y":0,"w":1,"h":2,"type":"common"},{"x":1,"y":0,"w":2,"h":2,"type":"target"},{"x":3,"y":0,"w":1,"h":2,"type":"common"},{"x":0,"y":2,"w":1,"h":2,"type":"common"},{"x":1,"y":2,"w":1,"h":1,"type":"common"},{"x":2,"y":2,"w":1,"h":1,"type":"common"},{"x":3,"y":2,"w":1,"h":2,"type":"common"},{"x":1,"y":3,"w":1,"h":1,"type":"common"},{"x":2,"y":3,"w":1,"h":1,"type":"common"},{"x":0,"y":4,"w":1,"h":1,"type":"common"},{"x":3,"y":4,"w":1,"h":1,"type":"common"}]}'
 stage1 = JSON.parse '{"framesize":{"w":4,"h":5},"endpoint":{"x":3,"y":5},"panels":[{"x":0,"y":0,"w":1,"h":1,"type":"common"},{"x":1,"y":0,"w":2,"h":2,"type":"target"},{"x":3,"y":0,"w":1,"h":1,"type":"common"},{"x":0,"y":1,"w":1,"h":1,"type":"common"},{"x":3,"y":1,"w":1,"h":1,"type":"common"},{"x":0,"y":2,"w":2,"h":1,"type":"common"},{"x":2,"y":2,"w":2,"h":1,"type":"common"},{"x":0,"y":3,"w":2,"h":1,"type":"common"},{"x":2,"y":3,"w":2,"h":1,"type":"common"},{"x":0,"y":4,"w":1,"h":1,"type":"common"},{"x":3,"y":4,"w":1,"h":1,"type":"common"}]}'
+stage2 = JSON.parse '{"framesize":{"w":4,"h":5},"endpoint":{"x":3,"y":5},"panels":[{"x":0,"y":0,"w":1,"h":2,"type":"common"},{"x":1,"y":0,"w":2,"h":2,"type":"target"},{"x":3,"y":0,"w":1,"h":2,"type":"common"},{"x":0,"y":2,"w":1,"h":1,"type":"common"},{"x":1,"y":2,"w":1,"h":1,"type":"common"},{"x":2,"y":2,"w":1,"h":1,"type":"common"},{"x":3,"y":2,"w":1,"h":1,"type":"common"},{"x":0,"y":3,"w":2,"h":1,"type":"common"},{"x":2,"y":3,"w":2,"h":1,"type":"common"},{"x":0,"y":4,"w":1,"h":1,"type":"common"},{"x":3,"y":4,"w":1,"h":1,"type":"common"}]}';
 
-stage = stage1
+stage = stage0
 
 #puts stage0.to_s
 #puts stage0["framesize"].to_s
@@ -20,7 +21,6 @@ for panel in stage["panels"] do
   when "target"
     type = "1"
   end
-#puts panel["w"]
   solver.add_panel_to_field panel["x"].to_i, panel["y"].to_i, panel["w"].to_i, panel["h"].to_i, type.to_i
 end
 
@@ -41,7 +41,7 @@ while (message = solver.pop_message) != "" do
   move_cnt += 1
 end
 
-move_actions = move_actions.reverse
+#move_actions = move_actions.reverse
 puts move_actions.to_s
 
 solver.delete_solver

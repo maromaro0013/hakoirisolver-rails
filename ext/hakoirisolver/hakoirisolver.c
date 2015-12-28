@@ -149,6 +149,34 @@ VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE t
 }
 
 int panel_collision(PANEL* p0, PANEL* p1) {
+  int x0 = p0->x;
+  int x1 = p0->x + p0->width;
+  int x2 = p1->x;
+  int x3 = p1->x + p1->width;
+
+  int y0 = p0->y;
+  int y1 = p0->y + p0->height;
+  int y2 = p1->y;
+  int y3 = p1->y + p1->height;
+
+  if (x0 >= x2 && x0 < x3) {
+    if (y0 >= y2 && y0 < y3) {
+      return TRUE;
+    }
+    if (y1 > y2 && y1 <= y3) {
+      return TRUE;
+    }
+  }
+  if (x1 > x2 && x1 <= x3) {
+    if (y1 > y2 && y1 <= y3) {
+      return TRUE;
+    }
+    if (y0 >= y2 && y0 < y3) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+/*
   if ( (p0->x              < p1->x + p1->width ) &&
        (p0->x + p0->width  > p1->x             ) &&
        (p0->y              < p1->y + p1->height) &&
@@ -157,6 +185,7 @@ int panel_collision(PANEL* p0, PANEL* p1) {
   }
 
   return FALSE;
+*/
 }
 
 // 移動判定のメモ化配列の初期化
@@ -303,6 +332,7 @@ int chk_clear_field(FIELD* f) {
   int idx = info->target_idx;
 
   PANEL* p = &f->panels[idx];
+
   if ((p->x+p->width == info->end_x) && (p->y+p->height == info->end_y)) {
     return TRUE;
   }
@@ -362,11 +392,31 @@ int count_leaves_from_depth(SOLVE_TREE* leaf, int depth) {
   return ret;
 }
 
+void push_solve_message(SOLVE_TREE* leaf) {
+  char message[256];
+  if (leaf->depth > 0) {
+    switch (leaf->dir) {
+      case eDIR_UP:
+        sprintf(message, "%d,UP", leaf->panel_idx);
+      break;
+      case eDIR_DOWN:
+        sprintf(message, "%d,DOWN", leaf->panel_idx);
+      break;
+      case eDIR_LEFT:
+        sprintf(message, "%d,LEFT", leaf->panel_idx);
+      break;
+      case eDIR_RIGHT:
+        sprintf(message, "%d,RIGHT", leaf->panel_idx);
+      break;
+    }
+    push_message(message);
+  }
+}
+
 int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
   FIELD_INFO* info = &g_field_info;
   int i = 0;
   int j = 0;
-  char message[256];
 
   if (leaf->depth < depth) {
     int ret = eSOLVESTATE_FAILED;
@@ -388,27 +438,7 @@ int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
         break;
 
         case eSOLVESTATE_SUCCEED:
-          //push_message("add panel");
-          //printf("panel_idx:%d - ", leaf->panel_idx);
-          switch (leaf->dir) {
-            case eDIR_UP:
-              sprintf(message, "%d,UP", leaf->panel_idx);
-              //printf("UP\n");
-            break;
-            case eDIR_DOWN:
-              sprintf(message, "%d,DOWN", leaf->panel_idx);
-              //printf("DOWN\n");
-            break;
-            case eDIR_LEFT:
-              sprintf(message, "%d,LEFT", leaf->panel_idx);
-              //printf("LEFT\n");
-            break;
-            case eDIR_RIGHT:
-              sprintf(message, "%d,RIGHT", leaf->panel_idx);
-              //printf("RIGHT\n");
-            break;
-          }
-          push_message(message);
+          push_solve_message(leaf);
           return eSOLVESTATE_SUCCEED;
       }
     }
@@ -416,6 +446,7 @@ int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
   }
 
   if (chk_clear_field(&leaf->field) == TRUE) {
+    push_solve_message(leaf);
     return eSOLVESTATE_SUCCEED;
   }
 
@@ -474,7 +505,7 @@ VALUE solve_field(VALUE self) {
 
   for (i = 0; i < max_depth; i++) {
     ret = grow_solve_tree(root, root, i);
-    /*
+/*
     switch (ret) {
       case eSOLVESTATE_CONTINUE:
         printf("solve_field:CONTINUE - depth:%d\n", i);
@@ -488,7 +519,7 @@ VALUE solve_field(VALUE self) {
         printf("solve_field:SUCCEED - depth:%d\n", i);
       break;
     }
-    */
+*/
     if (ret == eSOLVESTATE_FAILED || ret == eSOLVESTATE_SUCCEED) {
       break;
     }
