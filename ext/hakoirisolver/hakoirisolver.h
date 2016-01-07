@@ -8,16 +8,18 @@
 #define cPANELTYPE_COMMON (0)
 #define cPANELTYPE_TARGET (1)
 
-#define cFIELD_SIZE_LIMIT (8)  // ハッシュ関数の都合で16以上にできない
-#define cPANEL_SIZE_LIMIT (4)  // ハッシュ関数の都合で4以上にできない
+#define cFIELD_SIZE_MAX   (5)  // ハッシュ関数の都合で6より大きい値にできない
+#define cPANEL_SIZE_MAX   (2)  // ハッシュ関数の都合で2以上の値にできない
 
-#define cPANELS_MAX (cFIELD_SIZE_LIMIT*cFIELD_SIZE_LIMIT)
-#define cPANEL_SIZE_PATTERNS (cPANEL_SIZE_LIMIT*cPANEL_SIZE_LIMIT)
+#define cPANELS_MAX (cFIELD_SIZE_MAX*cFIELD_SIZE_MAX)
+#define cPANEL_SIZE_PATTERNS (cPANEL_SIZE_MAX*cPANEL_SIZE_MAX)
 
-#define cPANEL_HASH_LENGTH (2)
+#define cPANEL_HASH_LENGTH (1)
 #define cFIELD_HASH_MAX    (0xffff)
 
-#define cSOLVE_LEAVES_MAX (16)
+#define cPANEL_HASH_MAX    (192)
+
+#define cSOLVE_LEAVES_MAX  (16)
 
 enum {
   eDIR_UP = 0,
@@ -46,9 +48,8 @@ typedef struct PANEL_t {
   char y;
 
   char type;
+  //unsigned char hash;
   char padd[3];
-
-  unsigned char hash[cPANEL_HASH_LENGTH];
 }PANEL;
 
 typedef struct FIELD_INFO_t {
@@ -65,8 +66,6 @@ typedef struct FIELD_INFO_t {
 
 typedef struct FIELD_t {
   PANEL panels[cPANELS_MAX];
-
-//  char* field_hash;
 }FIELD;
 
 typedef struct SOLVE_TREE_t {

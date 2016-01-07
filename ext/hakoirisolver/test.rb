@@ -7,9 +7,6 @@ stage2 = JSON.parse '{"framesize":{"w":4,"h":5},"endpoint":{"x":3,"y":5},"panels
 
 stage = stage0
 
-#puts stage0.to_s
-#puts stage0["framesize"].to_s
-
 solver = HakoiriSolver.new
 solver.set_field_info stage["framesize"]["w"].to_i, stage["framesize"]["h"].to_i, stage["endpoint"]["x"].to_i, stage["endpoint"]["y"].to_i
 
@@ -41,7 +38,6 @@ while (message = solver.pop_message) != "" do
   move_cnt += 1
 end
 
-#move_actions = move_actions.reverse
 puts move_actions.to_s
 
 solver.delete_solver

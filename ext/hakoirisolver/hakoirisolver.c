@@ -1,11 +1,11 @@
 #include <ruby.h>
 #include "hakoirisolver.h"
 
-static char         panel_limit_dp[cPANEL_SIZE_PATTERNS][cPANELS_MAX][eDIR_MAX];
-static FIELD_INFO   g_field_info;
-static FIELD        g_field;
-static char*        g_field_hashs[cFIELD_HASH_MAX];
-MESSAGE_STACK       g_message_stack;
+static char               panel_limit_dp[cPANEL_HASH_MAX][eDIR_MAX];
+static FIELD_INFO         g_field_info;
+static FIELD              g_field;
+static unsigned char*     g_field_hashs[cFIELD_HASH_MAX];
+MESSAGE_STACK             g_message_stack;
 
 VALUE set_field_info(VALUE self, VALUE w, VALUE h, VALUE end_x, VALUE end_y);
 VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE type);
@@ -51,37 +51,34 @@ VALUE set_field_info(VALUE self, VALUE w, VALUE h, VALUE end_x, VALUE end_y) {
 void init_field_hash(void) {
   memset(g_field_hashs, 0, sizeof(g_field_hashs));
 }
-char* create_field_hash(FIELD_INFO* info, FIELD* f) {
+unsigned char* create_field_hash(FIELD_INFO* info, FIELD* f) {
   int hash_length = info->panel_count*cPANEL_HASH_LENGTH;
-  char* ret = (char*)malloc(hash_length);
+  unsigned char* ret = (unsigned char*)malloc(hash_length);
   int i = 0;
   int j = 0;
-  int hash = 0;
-  int tmp_hash = 0;
 
-  int hash_ary[cPANELS_MAX];
-  memset(hash_ary, 0, sizeof(hash_ary));
+  unsigned char hash = 0;
+  unsigned char tmp_hash = 0;
+
   for (i = 0; i < info->panel_count; i++) {
-    hash = (f->panels[i].hash[0] << 8) | (f->panels[i].hash[1]);
-    for (j = 0; j < i; j++) {
-      if (hash < hash_ary[j]) {
-        break;
+    PANEL* p = &f->panels[i];
+    ret[i] = (p->x << 5) | (p->y << 2) | ((p->width - 1) << 1) | (p->height - 1);
+    //ret[i] = f->panels[i].hash;
+  }
+  for (i = 0; i < info->panel_count - 1; i++) {
+    for (j = 0; j < info->panel_count - 1 - i; j++) {
+      if (ret[j] > ret[j + 1]) {
+        tmp_hash = ret[j];
+        ret[j] = ret[j + 1];
+        ret[j + 1] = tmp_hash;
       }
     }
-    memcpy(&hash_ary[j + 1], &hash_ary[j], sizeof(int)*(cPANELS_MAX - j - 1));
-    hash_ary[j] = hash;
-  }
-
-  char* hp = ret;
-  for (i = 0; i < info->panel_count; i++) {
-    memcpy((void*)hp, (void*)&hash_ary[i], cPANEL_HASH_LENGTH);
-    hp += cPANEL_HASH_LENGTH;
   }
 
   return ret;
 }
 
-void add_field_hash(FIELD_INFO* info, char* hash) {
+void add_field_hash(FIELD_INFO* info, unsigned char* hash) {
   g_field_hashs[info->field_hash_count] = hash;
   info->field_hash_count++;
 }
@@ -117,20 +114,10 @@ void copy_field(FIELD* source, FIELD* dest) {
   memcpy((void*)&dest->panels[0], &source->panels[0], sizeof(dest->panels));
 }
 
-void create_panel_hash(PANEL* p) {
-  p->hash[0] = (p->width << 4) | (p->height);
-  p->hash[1] = (p->x << 4) | (p->y);
-
-  // 必ずtarget(娘)はサイズがユニークであること！
-  // https://ja.wikipedia.org/wiki/%E7%AE%B1%E5%85%A5%E3%82%8A%E5%A8%98_(%E3%83%91%E3%82%BA%E3%83%AB)
-}
-
 VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE type) {
   FIELD_INFO* info = &g_field_info;
   PANEL* p = &g_field.panels[info->panel_count];
   memset(p, 0, sizeof(PANEL));
-
-  //push_message("add panel");
 
   p->width = FIX2INT(w);
   p->height = FIX2INT(h);
@@ -141,8 +128,6 @@ VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE t
   if (p->type == cPANELTYPE_TARGET) {
     info->target_idx = info->panel_count;
   }
-
-  create_panel_hash(p);
   info->panel_count++;
 
   return 0;
@@ -176,39 +161,11 @@ int panel_collision(PANEL* p0, PANEL* p1) {
     }
   }
   return FALSE;
-/*
-  if ( (p0->x              < p1->x + p1->width ) &&
-       (p0->x + p0->width  > p1->x             ) &&
-       (p0->y              < p1->y + p1->height) &&
-       (p0->y + p0->height > p1->y             )) {
-    return TRUE;
-  }
-
-  return FALSE;
-*/
 }
 
 // 移動判定のメモ化配列の初期化
 void init_panel_limit_dp() {
   memset(panel_limit_dp, -1, sizeof(panel_limit_dp));
-}
-
-int chk_panel_limit(FIELD* f, PANEL* p) {
-  FIELD_INFO* info = &g_field_info;
-
-  if (p->y < 0) {
-    return FALSE;
-  }
-  if (p->y + p->height > info->height) {
-    return FALSE;
-  }
-  if (p->x < 0) {
-    return FALSE;
-  }
-  if (p->x + p->width > info->width) {
-    return FALSE;
-  }
-  return TRUE;
 }
 
 int chk_panel_move(FIELD* field, int panel_idx, int dir) {
@@ -221,6 +178,7 @@ int chk_panel_move(FIELD* field, int panel_idx, int dir) {
   PANEL* p = &field->panels[panel_idx];
   PANEL tmp_panel = *p;
 
+  unsigned char hash = (p->x << 5) | (p->y << 2) | ((p->width - 1) << 1) | (p->height - 1);
   int dir_move_arr[eDIR_MAX][2] = {
     {0, -1},
     {0, +1},
@@ -230,22 +188,25 @@ int chk_panel_move(FIELD* field, int panel_idx, int dir) {
   tmp_panel.x += dir_move_arr[dir][0];
   tmp_panel.y += dir_move_arr[dir][1];
 
-  int limit_flg = FALSE;
-  int size_idx = (tmp_panel.width << 2) | (tmp_panel.height); // 0~15
-  int p_idx = (tmp_panel.x << 3) | (tmp_panel.y); // 0~63
-  int dir_idx = dir; // 0~3
-
-  if (panel_limit_dp[size_idx][p_idx][dir_idx] != -1) {
-    if (panel_limit_dp[size_idx][p_idx][dir_idx] == 1) {
-      return FALSE;
+  if (panel_limit_dp[hash][dir] == -1) {
+    if (tmp_panel.y < 0) {
+      panel_limit_dp[hash][dir] = 0;
+    }
+    else if (tmp_panel.y + tmp_panel.height > info->height) {
+      panel_limit_dp[hash][dir] = 0;
+    }
+    else if (tmp_panel.x < 0) {
+      panel_limit_dp[hash][dir] = 0;
+    }
+    else if (tmp_panel.x + tmp_panel.width > info->width) {
+      panel_limit_dp[hash][dir] = 0;
+    }
+    else {
+      panel_limit_dp[hash][dir] = 1;
     }
   }
-  else {
-    if (chk_panel_limit(field, &tmp_panel) == FALSE) {
-      panel_limit_dp[size_idx][p_idx][dir_idx] = 1;
-      return FALSE;
-    }
-    panel_limit_dp[size_idx][p_idx][dir_idx] = 0;
+  if (panel_limit_dp[hash][dir] == 0) {
+    return FALSE;
   }
 
   int i = 0;
@@ -264,10 +225,6 @@ int chk_panel_move(FIELD* field, int panel_idx, int dir) {
 int move_panel(FIELD* field, int panel_idx, int dir) {
   FIELD_INFO* info = &g_field_info;
 
-  if (panel_idx >= info->panel_count) {
-    return FALSE;
-  }
-
   PANEL* p = &field->panels[panel_idx];
 
   int dir_move_arr[eDIR_MAX][2] = {
@@ -279,7 +236,7 @@ int move_panel(FIELD* field, int panel_idx, int dir) {
   p->x += dir_move_arr[dir][0];
   p->y += dir_move_arr[dir][1];
 
-  create_panel_hash(p);
+  //create_panel_hash(p);
 
   return TRUE;
 }
@@ -293,11 +250,11 @@ VALUE data_validate(VALUE self) {
     return INT2FIX(FALSE);
   }
 
-  if (info->width <= 0 || info->width >= cFIELD_SIZE_LIMIT) {
+  if (info->width <= 0 || info->width > cFIELD_SIZE_MAX) {
     printf("illegal field size\n");
     return INT2FIX(FALSE);
   }
-  if (info->height <= 0 || info->height >= cFIELD_SIZE_LIMIT) {
+  if (info->height <= 0 || info->height > cFIELD_SIZE_MAX) {
     printf("illegal field size\n");
     return INT2FIX(FALSE);
   }
@@ -305,11 +262,11 @@ VALUE data_validate(VALUE self) {
   int i = 0;
   for (i = 0; i < info->panel_count; i++) {
     PANEL* p = &field->panels[i];
-    if (p->width <= 0 || p->width > cPANEL_SIZE_LIMIT) {
+    if (p->width <= 0 || p->width > cPANEL_SIZE_MAX) {
       printf("illegal panel size\n");
       return INT2FIX(FALSE);
     }
-    if (p->height <= 0 || p->height > cPANEL_SIZE_LIMIT) {
+    if (p->height <= 0 || p->height > cPANEL_SIZE_MAX) {
       printf("illegal panel size\n");
       return INT2FIX(FALSE);
     }
@@ -361,14 +318,15 @@ void destroy_solve_tree(SOLVE_TREE* leaf) {
 }
 
 int chk_hash_and_append(FIELD_INFO* info, FIELD* f) {
-  char* hash = create_field_hash(info, f);
-  char* diff_hash = NULL;
+  unsigned char* hash = create_field_hash(info, f);
+  unsigned char* diff_hash = NULL;
   int i = 0;
   int hash_length = info->panel_count*cPANEL_HASH_LENGTH;
 
   for (i = 0; i < info->field_hash_count; i++) {
     diff_hash = g_field_hashs[i];
     if (memcmp(diff_hash, hash, hash_length) == 0) {
+      //printf("mokyun\n");
       free(hash);
       return TRUE;
     }
@@ -492,7 +450,7 @@ int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
 VALUE solve_field(VALUE self) {
   int i = 0;
   int depth = 0;
-  int max_depth = 256;
+  int max_depth = 50;
   SOLVE_TREE* root = (SOLVE_TREE*)malloc(sizeof(SOLVE_TREE));
 
   root->depth = 0;
@@ -505,24 +463,10 @@ VALUE solve_field(VALUE self) {
 
   for (i = 0; i < max_depth; i++) {
     ret = grow_solve_tree(root, root, i);
-/*
-    switch (ret) {
-      case eSOLVESTATE_CONTINUE:
-        printf("solve_field:CONTINUE - depth:%d\n", i);
-      break;
-
-      case eSOLVESTATE_FAILED:
-        printf("solve_field:FAILED - depth:%d\n", i);
-      break;
-
-      case eSOLVESTATE_SUCCEED:
-        printf("solve_field:SUCCEED - depth:%d\n", i);
-      break;
-    }
-*/
     if (ret == eSOLVESTATE_FAILED || ret == eSOLVESTATE_SUCCEED) {
       break;
     }
+    //printf("%d\n", i);
   }
 
   destroy_solve_tree(root);
