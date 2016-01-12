@@ -64,6 +64,12 @@ typedef struct FIELD_INFO_t {
   int field_hash_count;
 }FIELD_INFO;
 
+typedef struct FIELD_HASH_t {
+  int flg;
+
+  struct FIELD_HASH_t* next[cPANEL_HASH_MAX];
+}FIELD_HASH;
+
 typedef struct FIELD_t {
   PANEL panels[cPANELS_MAX];
 }FIELD;

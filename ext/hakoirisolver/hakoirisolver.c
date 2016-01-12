@@ -5,6 +5,7 @@ static char               panel_limit_dp[cPANEL_HASH_MAX][eDIR_MAX];
 static FIELD_INFO         g_field_info;
 static FIELD              g_field;
 static unsigned char*     g_field_hashs[cFIELD_HASH_MAX];
+static FIELD_HASH         g_field_hash_root;
 MESSAGE_STACK             g_message_stack;
 
 VALUE set_field_info(VALUE self, VALUE w, VALUE h, VALUE end_x, VALUE end_y);
@@ -63,7 +64,6 @@ unsigned char* create_field_hash(FIELD_INFO* info, FIELD* f) {
   for (i = 0; i < info->panel_count; i++) {
     PANEL* p = &f->panels[i];
     ret[i] = (p->x << 5) | (p->y << 2) | ((p->width - 1) << 1) | (p->height - 1);
-    //ret[i] = f->panels[i].hash;
   }
   for (i = 0; i < info->panel_count - 1; i++) {
     for (j = 0; j < info->panel_count - 1 - i; j++) {
@@ -235,8 +235,6 @@ int move_panel(FIELD* field, int panel_idx, int dir) {
   };
   p->x += dir_move_arr[dir][0];
   p->y += dir_move_arr[dir][1];
-
-  //create_panel_hash(p);
 
   return TRUE;
 }
@@ -447,11 +445,39 @@ int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
   return eSOLVESTATE_CONTINUE;
 }
 
+int chk_and_append_field_hash(unsigned char *hashs, int len) {
+  int i = 0;
+  FIELD_HASH* next = &g_field_hash_root;
+  unsigned char hash = hashs[0];
+
+  for (i = 0; i < len; i++) {
+    hash = hashs[i];
+    if (next->next[hash] == NULL) {
+      next->next[hash] = (FIELD_HASH*)malloc(sizeof(FIELD_HASH));
+      memset((void*)next->next[hash], 0, sizeof(FIELD_HASH));
+    }
+    next = next->next[hash];
+  }
+  return FALSE;
+}
+void destroy_field_hashs(FIELD_HASH* f) {
+  int i = 0;
+
+  for (i = 0; i < cPANEL_HASH_MAX; i++) {
+    if (f->next[i] != NULL) {
+      destroy_field_hashs(f->next[i]);
+      free(f->next[i]);
+    }
+  }
+}
+
 VALUE solve_field(VALUE self) {
   int i = 0;
   int depth = 0;
-  int max_depth = 50;
+  int max_depth = 100;
   SOLVE_TREE* root = (SOLVE_TREE*)malloc(sizeof(SOLVE_TREE));
+
+  memset((void*)&g_field_hash_root, 0, sizeof(g_field_hash_root));
 
   root->depth = 0;
   root->leaves_count = 0;
@@ -470,6 +496,7 @@ VALUE solve_field(VALUE self) {
   }
 
   destroy_solve_tree(root);
+  destroy_field_hashs(&g_field_hash_root);
 
   return INT2FIX(ret);
 }
