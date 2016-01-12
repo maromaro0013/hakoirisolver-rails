@@ -133,6 +133,37 @@ VALUE add_panel_to_field(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE t
   return 0;
 }
 
+int chk_and_append_field_hash(unsigned char *hashs, int len) {
+  int i = 0;
+  int ret = FALSE;
+  FIELD_HASH* next = &g_field_hash_root;
+  unsigned char hash = hashs[0];
+
+  for (i = 0; i < len; i++) {
+    hash = hashs[i];
+    if (next->next[hash] == NULL) {
+      next->next[hash] = (FIELD_HASH*)malloc(sizeof(FIELD_HASH));
+      memset((void*)next->next[hash], 0, sizeof(FIELD_HASH));
+      if (ret == FALSE) {
+        g_field_info.field_hash_count += 1;
+        ret = TRUE;
+      }
+    }
+    next = next->next[hash];
+  }
+  return ret;
+}
+void destroy_field_hashs(FIELD_HASH* f) {
+  int i = 0;
+
+  for (i = 0; i < cPANEL_HASH_MAX; i++) {
+    if (f->next[i] != NULL) {
+      destroy_field_hashs(f->next[i]);
+      free(f->next[i]);
+    }
+  }
+}
+
 int panel_collision(PANEL* p0, PANEL* p1) {
   int x0 = p0->x;
   int x1 = p0->x + p0->width;
@@ -317,6 +348,13 @@ void destroy_solve_tree(SOLVE_TREE* leaf) {
 
 int chk_hash_and_append(FIELD_INFO* info, FIELD* f) {
   unsigned char* hash = create_field_hash(info, f);
+  int hash_length = info->panel_count*cPANEL_HASH_LENGTH;
+  int ret = chk_and_append_field_hash(hash, hash_length);
+
+  free(hash);
+  return !ret;
+/*
+  unsigned char* hash = create_field_hash(info, f);
   unsigned char* diff_hash = NULL;
   int i = 0;
   int hash_length = info->panel_count*cPANEL_HASH_LENGTH;
@@ -324,7 +362,6 @@ int chk_hash_and_append(FIELD_INFO* info, FIELD* f) {
   for (i = 0; i < info->field_hash_count; i++) {
     diff_hash = g_field_hashs[i];
     if (memcmp(diff_hash, hash, hash_length) == 0) {
-      //printf("mokyun\n");
       free(hash);
       return TRUE;
     }
@@ -332,8 +369,10 @@ int chk_hash_and_append(FIELD_INFO* info, FIELD* f) {
 
   add_field_hash(info, hash);
   return FALSE;
+*/
 }
 
+/*
 int count_leaves_from_depth(SOLVE_TREE* leaf, int depth) {
   int ret = leaf->leaves_count;
   int i = 0;
@@ -347,6 +386,7 @@ int count_leaves_from_depth(SOLVE_TREE* leaf, int depth) {
   }
   return ret;
 }
+*/
 
 void push_solve_message(SOLVE_TREE* leaf) {
   char message[256];
@@ -445,36 +485,10 @@ int grow_solve_tree(SOLVE_TREE* root, SOLVE_TREE* leaf, int depth) {
   return eSOLVESTATE_CONTINUE;
 }
 
-int chk_and_append_field_hash(unsigned char *hashs, int len) {
-  int i = 0;
-  FIELD_HASH* next = &g_field_hash_root;
-  unsigned char hash = hashs[0];
-
-  for (i = 0; i < len; i++) {
-    hash = hashs[i];
-    if (next->next[hash] == NULL) {
-      next->next[hash] = (FIELD_HASH*)malloc(sizeof(FIELD_HASH));
-      memset((void*)next->next[hash], 0, sizeof(FIELD_HASH));
-    }
-    next = next->next[hash];
-  }
-  return FALSE;
-}
-void destroy_field_hashs(FIELD_HASH* f) {
-  int i = 0;
-
-  for (i = 0; i < cPANEL_HASH_MAX; i++) {
-    if (f->next[i] != NULL) {
-      destroy_field_hashs(f->next[i]);
-      free(f->next[i]);
-    }
-  }
-}
-
 VALUE solve_field(VALUE self) {
   int i = 0;
   int depth = 0;
-  int max_depth = 100;
+  int max_depth = 128;
   SOLVE_TREE* root = (SOLVE_TREE*)malloc(sizeof(SOLVE_TREE));
 
   memset((void*)&g_field_hash_root, 0, sizeof(g_field_hash_root));
@@ -492,7 +506,7 @@ VALUE solve_field(VALUE self) {
     if (ret == eSOLVESTATE_FAILED || ret == eSOLVESTATE_SUCCEED) {
       break;
     }
-    //printf("%d\n", i);
+    //printf("%d:%d\n", i, g_field_info.field_hash_count);
   }
 
   destroy_solve_tree(root);

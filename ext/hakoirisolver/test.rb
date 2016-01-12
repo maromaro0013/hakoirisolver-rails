@@ -5,7 +5,7 @@ stage0 = JSON.parse '{"framesize":{"w":4,"h":5},"endpoint":{"x":3,"y":5},"panels
 stage1 = JSON.parse '{"framesize":{"w":4,"h":5},"endpoint":{"x":3,"y":5},"panels":[{"x":0,"y":0,"w":1,"h":1,"type":"common"},{"x":1,"y":0,"w":2,"h":2,"type":"target"},{"x":3,"y":0,"w":1,"h":1,"type":"common"},{"x":0,"y":1,"w":1,"h":1,"type":"common"},{"x":3,"y":1,"w":1,"h":1,"type":"common"},{"x":0,"y":2,"w":2,"h":1,"type":"common"},{"x":2,"y":2,"w":2,"h":1,"type":"common"},{"x":0,"y":3,"w":2,"h":1,"type":"common"},{"x":2,"y":3,"w":2,"h":1,"type":"common"},{"x":0,"y":4,"w":1,"h":1,"type":"common"},{"x":3,"y":4,"w":1,"h":1,"type":"common"}]}'
 stage2 = JSON.parse '{"framesize":{"w":4,"h":5},"endpoint":{"x":3,"y":5},"panels":[{"x":0,"y":0,"w":1,"h":2,"type":"common"},{"x":1,"y":0,"w":2,"h":2,"type":"target"},{"x":3,"y":0,"w":1,"h":2,"type":"common"},{"x":0,"y":2,"w":1,"h":1,"type":"common"},{"x":1,"y":2,"w":1,"h":1,"type":"common"},{"x":2,"y":2,"w":1,"h":1,"type":"common"},{"x":3,"y":2,"w":1,"h":1,"type":"common"},{"x":0,"y":3,"w":2,"h":1,"type":"common"},{"x":2,"y":3,"w":2,"h":1,"type":"common"},{"x":0,"y":4,"w":1,"h":1,"type":"common"},{"x":3,"y":4,"w":1,"h":1,"type":"common"}]}';
 
-stage = stage0
+stage = stage2
 
 solver = HakoiriSolver.new
 solver.set_field_info stage["framesize"]["w"].to_i, stage["framesize"]["h"].to_i, stage["endpoint"]["x"].to_i, stage["endpoint"]["y"].to_i
